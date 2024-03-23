@@ -1,0 +1,66 @@
+const apiUrl = "https://api.arkhamintelligence.com/intelligence/address/"
+
+const apiKey = "gh67j345kl6hj5k432"
+
+const xPayload = "d4c443b433d17b4aabaced06991df4817849ddd0055bb20d203169dc88a621b9";
+
+const apiHost = "https://api.arkhamintelligence.com"
+
+function createSHA256Hash(inputData) {
+  // Tính toán hash SHA-256
+  var hashedData = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, inputData);
+  
+  // Chuyển đổi hash thành chuỗi hex
+  var hashedDataHex = hashedData.map(function(byte) {
+    return ('0' + (byte & 0xFF).toString(16)).slice(-2);
+  }).join('');
+  
+  return hashedDataHex;
+}
+
+function getDetailAddress(address) {
+const dictUrl = "https://api.arkhamintelligence.com/intelligence/address/" + address;
+
+  const xTimestamp = Math.floor(new Date().getTime() / 1000).toString();
+  const newDict = dictUrl.replace(apiHost, "").split("?")[0];
+    // return newDict; 
+  const dummy = "".concat(newDict, ":").concat(xTimestamp, ":").concat(apiKey)
+  const dummyHash = createSHA256Hash(dummy);
+
+  const payloadRaw = "".concat(apiKey, ":").concat(dummyHash);
+
+  const xPayloadResult = createSHA256Hash(payloadRaw)
+    // return dummy +" "+ dummyHash + " "+payloadRaw;
+
+
+  const headers = {
+    // "Content-Type": "application/json",
+    // "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36",
+    "Origin": "https://platform.arkhamintelligence.com",
+    "Referer": "https://platform.arkhamintelligence.com/",
+    "X-Payload": xPayloadResult,
+    "X-Timestamp": xTimestamp
+  };
+
+  // Thực hiện yêu cầu GET tới API với các tiêu đề
+  var options = {
+    "method": "GET",
+    "headers": headers,
+    "muteHttpExceptions": true,
+  };
+  var response = UrlFetchApp.fetch(apiUrl+address, options);
+
+  // Kiểm tra xem yêu cầu đã thành công hay không
+  if (response.getResponseCode() == 200) {
+    // Xử lý dữ liệu nhận được từ API
+    const data = JSON.parse(response.getContentText());
+    const entityName = data.arkhamEntity?.name ? data.arkhamEntity.name: "";
+    const labelName = data.arkhamLabel?.name ? data.arkhamLabel.name: ""
+    return entityName+ " "+ labelName;
+
+  } else {
+    // Hiển thị thông báo lỗi nếu yêu cầu không thành công
+    Logger.log("Error: " + response.getResponseCode());
+    return response.getContentText();
+  }
+}
